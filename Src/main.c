@@ -142,7 +142,7 @@ static swdStatus_t extractFlashData( uint32_t const address, uint32_t * const da
 
     HAL_Delay(1u);
     targetSysUnReset();
-    HAL_Delay(1u);
+    HAL_Delay(2u);
     targetSysReset();
 
     HAL_Delay(1u);
