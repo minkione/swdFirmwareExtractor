@@ -49,6 +49,19 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define BUTTON1_Pin GPIO_PIN_13
+#define BUTTON1_GPIO_Port GPIOC
+#define LED1_Pin GPIO_PIN_5
+#define LED1_GPIO_Port GPIOA
+#define TARGET_RESET_Pin GPIO_PIN_8
+#define TARGET_RESET_GPIO_Port GPIOA
+#define TARGET_PWR_Pin GPIO_PIN_9
+#define TARGET_PWR_GPIO_Port GPIOA
+#define SWDIO_Pin GPIO_PIN_10
+#define SWDIO_GPIO_Port GPIOA
+#define SWCLK_Pin GPIO_PIN_5
+#define SWCLK_GPIO_Port GPIOB
+
 /* ########################## Assert Selection ############################## */
 /**
   * @brief Uncomment the line below to expanse the "assert_param" macro in the 
@@ -57,6 +70,34 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
+#include <stdint.h>
+
+
+#ifndef NULL
+#define NULL ((void*) 0)
+#endif
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
+
+#define MAX_READ_ATTEMPTS (100u)
+
+/* all times in milliseconds */
+/* minimum wait time between reset deassert and attack */
+#define DELAY_JITTER_MS_MIN (20u)
+/* increment per failed attack */
+#define DELAY_JITTER_MS_INCREMENT (1u)
+/* maximum wait time between reset deassert and attack */
+#define DELAY_JITTER_MS_MAX (50u)
+
+/* flash readout statistics */
+typedef struct {
+    uint32_t numAttempts;
+    uint32_t numSuccess;
+    uint32_t numFailure;
+} extractionStatistics_t;
+
+void printExtractionStatistics( void );
 
 /* USER CODE END Private defines */
 

