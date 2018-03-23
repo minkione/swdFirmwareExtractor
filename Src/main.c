@@ -70,7 +70,7 @@ static uartControl_t uartControl = {0u};
    Address must be 32-bit aligned */
 static swdStatus_t extractFlashData( uint32_t const address, uint32_t * const data )
 {
-  swdStatus_t dbgStatus = swdStatusNone;
+  swdStatus_t dbgStatus;
 
   /* Add some jitter on the moment of attack (may increase attack effectiveness) */
   static uint16_t delayJitter = DELAY_JITTER_MS_MIN;
@@ -211,7 +211,7 @@ int main(void)
   uint32_t flashData = 0xFFFFFFFFu;
   uint32_t btnActive = 0u;
   uint32_t once = 0u;
-  swdStatus_t status = swdStatusOk;
+  swdStatus_t status;
 
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
 
@@ -312,8 +312,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = 16;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL3;
-  RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV4;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL4;
+  RCC_OscInitStruct.PLL.PLLDIV = RCC_PLL_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -328,7 +328,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
