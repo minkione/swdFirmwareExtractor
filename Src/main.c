@@ -213,6 +213,8 @@ int main(void)
   uint32_t once = 0u;
   swdStatus_t status = swdStatusOk;
 
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -222,7 +224,7 @@ int main(void)
     uartReceiveCommands( &uartControl );
 
     /* Start as soon as the button B1 has been pushed */
-    if (HAL_GPIO_ReadPin(BUTTON1_GPIO_Port, BUTTON1_Pin))
+    if (!HAL_GPIO_ReadPin(BUTTON1_GPIO_Port, BUTTON1_Pin))
     {
       btnActive = 1u;
     }
