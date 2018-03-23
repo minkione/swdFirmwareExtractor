@@ -26,6 +26,7 @@ set(SRC_LIST
         Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_uart.h
 
         Drivers/STM32L1xx_HAL_Driver/Src/stm32l1xx_ll_gpio.c
+        Drivers/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal.c
         Drivers/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal_gpio.c
         Drivers/STM32L1xx_HAL_Driver/Src/stm32l1xx_hal_uart.c
 )

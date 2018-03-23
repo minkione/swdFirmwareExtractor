@@ -141,6 +141,11 @@ static swdStatus_t extractFlashData( uint32_t const address, uint32_t * const da
     targetSysOff();
 
     HAL_Delay(1u);
+    targetSysUnReset();
+    HAL_Delay(1u);
+    targetSysReset();
+
+    HAL_Delay(1u);
   }
   while ((dbgStatus != swdStatusOk) && (numReadAttempts < (MAX_READ_ATTEMPTS)));
 

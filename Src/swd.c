@@ -102,7 +102,6 @@ static void swdDataIdle( void )
 	HAL_GPIO_WritePin(SWDIO_GPIO_Port, SWDIO_Pin, GPIO_PIN_SET);
 	MWAIT;
   LL_GPIO_SetPinMode(SWDIO_GPIO_Port, SWDIO_Pin, LL_GPIO_MODE_INPUT);
-  LL_GPIO_SetPinPull(SWDIO_GPIO_Port, SWDIO_Pin, LL_GPIO_PULL_UP);
 	MWAIT;
 }
 
@@ -112,7 +111,6 @@ static void swdDataPP( void )
 	MWAIT;
   HAL_GPIO_WritePin(SWDIO_GPIO_Port, SWDIO_Pin, GPIO_PIN_RESET);
   LL_GPIO_SetPinMode(SWDIO_GPIO_Port, SWDIO_Pin, LL_GPIO_MODE_OUTPUT);
-//	LL_GPIO_SetPinOutputType(SWDIO_GPIO_Port, SWDIO_Pin, LL_GPIO_OUTPUT_PUSHPULL);
 	MWAIT;
 }
 
@@ -291,7 +289,7 @@ static swdStatus_t swdReadPacket( swdPortSelect_t const portSel, uint8_t const A
 
 static swdStatus_t swdWritePacket( swdPortSelect_t const portSel, uint8_t const A32, uint32_t const data )
 {
-	swdStatus_t ret = swdStatusNone;
+	swdStatus_t ret;
 	uint8_t header = 0x00u;
 	uint8_t rp[1] = {0x00u};
 	uint8_t data1[5] = {0u};
