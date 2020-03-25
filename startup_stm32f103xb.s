@@ -1,43 +1,27 @@
 /**
-  ******************************************************************************
-  * @file      startup_stm32l152xe.s
+  *************** (C) COPYRIGHT 2017 STMicroelectronics ************************
+  * @file      startup_stm32f103xb.s
   * @author    MCD Application Team
-  * @brief     STM32L152XE Devices vector table for 
-  *            Atollic toolchain.
+  * @brief     STM32F103xB Devices vector table for Atollic toolchain.
   *            This module performs:
   *                - Set the initial SP
   *                - Set the initial PC == Reset_Handler,
   *                - Set the vector table entries with the exceptions ISR address
-  *                - Configure the clock system
+  *                - Configure the clock system   
   *                - Branches to main in the C library (which eventually
   *                  calls main()).
   *            After Reset the Cortex-M3 processor is in Thread mode,
   *            priority is Privileged, and the Stack is set to Main.
   ******************************************************************************
+  * @attention
   *
-  * <h2><center>&copy; COPYRIGHT(c) 2017 STMicroelectronics</center></h2>
+  * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+  * All rights reserved.</center></h2>
   *
-  * Redistribution and use in source and binary forms, with or without modification,
-  * are permitted provided that the following conditions are met:
-  *   1. Redistributions of source code must retain the above copyright notice,
-  *      this list of conditions and the following disclaimer.
-  *   2. Redistributions in binary form must reproduce the above copyright notice,
-  *      this list of conditions and the following disclaimer in the documentation
-  *      and/or other materials provided with the distribution.
-  *   3. Neither the name of STMicroelectronics nor the names of its contributors
-  *      may be used to endorse or promote products derived from this software
-  *      without specific prior written permission.
-  *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
   *
   ******************************************************************************
   */
@@ -134,12 +118,13 @@ Infinite_Loop:
 * 0x0000.0000.
 *
 ******************************************************************************/
-   .section .isr_vector,"a",%progbits
+  .section .isr_vector,"a",%progbits
   .type g_pfnVectors, %object
   .size g_pfnVectors, .-g_pfnVectors
 
 
 g_pfnVectors:
+
   .word _estack
   .word Reset_Handler
   .word NMI_Handler
@@ -158,8 +143,8 @@ g_pfnVectors:
   .word SysTick_Handler
   .word WWDG_IRQHandler
   .word PVD_IRQHandler
-  .word TAMPER_STAMP_IRQHandler
-  .word RTC_WKUP_IRQHandler
+  .word TAMPER_IRQHandler
+  .word RTC_IRQHandler
   .word FLASH_IRQHandler
   .word RCC_IRQHandler
   .word EXTI0_IRQHandler
@@ -174,16 +159,16 @@ g_pfnVectors:
   .word DMA1_Channel5_IRQHandler
   .word DMA1_Channel6_IRQHandler
   .word DMA1_Channel7_IRQHandler
-  .word ADC1_IRQHandler
-  .word USB_HP_IRQHandler
-  .word USB_LP_IRQHandler
-  .word DAC_IRQHandler
-  .word COMP_IRQHandler
+  .word ADC1_2_IRQHandler
+  .word USB_HP_CAN1_TX_IRQHandler
+  .word USB_LP_CAN1_RX0_IRQHandler
+  .word CAN1_RX1_IRQHandler
+  .word CAN1_SCE_IRQHandler
   .word EXTI9_5_IRQHandler
-  .word LCD_IRQHandler  
-  .word TIM9_IRQHandler
-  .word TIM10_IRQHandler
-  .word TIM11_IRQHandler
+  .word TIM1_BRK_IRQHandler
+  .word TIM1_UP_IRQHandler
+  .word TIM1_TRG_COM_IRQHandler
+  .word TIM1_CC_IRQHandler
   .word TIM2_IRQHandler
   .word TIM3_IRQHandler
   .word TIM4_IRQHandler
@@ -198,28 +183,16 @@ g_pfnVectors:
   .word USART3_IRQHandler
   .word EXTI15_10_IRQHandler
   .word RTC_Alarm_IRQHandler
-  .word USB_FS_WKUP_IRQHandler
-  .word TIM6_IRQHandler
-  .word TIM7_IRQHandler
-  .word 0
-  .word TIM5_IRQHandler
-  .word SPI3_IRQHandler
-  .word UART4_IRQHandler
-  .word UART5_IRQHandler
-  .word DMA2_Channel1_IRQHandler
-  .word DMA2_Channel2_IRQHandler
-  .word DMA2_Channel3_IRQHandler
-  .word DMA2_Channel4_IRQHandler
-  .word DMA2_Channel5_IRQHandler
-  .word 0
-  .word COMP_ACQ_IRQHandler
+  .word USBWakeUp_IRQHandler
   .word 0
   .word 0
   .word 0
   .word 0
   .word 0
-  .word BootRAM          /* @0x108. This is for boot in RAM mode for 
-                            STM32L152XE devices. */
+  .word 0
+  .word 0
+  .word BootRAM          /* @0x108. This is for boot in RAM mode for
+                            STM32F10x Medium Density devices. */
 
 /*******************************************************************************
 *
@@ -262,11 +235,11 @@ g_pfnVectors:
   .weak PVD_IRQHandler
   .thumb_set PVD_IRQHandler,Default_Handler
 
-  .weak TAMPER_STAMP_IRQHandler
-  .thumb_set TAMPER_STAMP_IRQHandler,Default_Handler
+  .weak TAMPER_IRQHandler
+  .thumb_set TAMPER_IRQHandler,Default_Handler
 
-  .weak RTC_WKUP_IRQHandler
-  .thumb_set RTC_WKUP_IRQHandler,Default_Handler
+  .weak RTC_IRQHandler
+  .thumb_set RTC_IRQHandler,Default_Handler
 
   .weak FLASH_IRQHandler
   .thumb_set FLASH_IRQHandler,Default_Handler
@@ -310,35 +283,35 @@ g_pfnVectors:
   .weak DMA1_Channel7_IRQHandler
   .thumb_set DMA1_Channel7_IRQHandler,Default_Handler
 
-  .weak ADC1_IRQHandler
-  .thumb_set ADC1_IRQHandler,Default_Handler
+  .weak ADC1_2_IRQHandler
+  .thumb_set ADC1_2_IRQHandler,Default_Handler
 
-  .weak USB_HP_IRQHandler
-  .thumb_set USB_HP_IRQHandler,Default_Handler
+  .weak USB_HP_CAN1_TX_IRQHandler
+  .thumb_set USB_HP_CAN1_TX_IRQHandler,Default_Handler
 
-  .weak USB_LP_IRQHandler
-  .thumb_set USB_LP_IRQHandler,Default_Handler
+  .weak USB_LP_CAN1_RX0_IRQHandler
+  .thumb_set USB_LP_CAN1_RX0_IRQHandler,Default_Handler
 
-  .weak DAC_IRQHandler
-  .thumb_set DAC_IRQHandler,Default_Handler
+  .weak CAN1_RX1_IRQHandler
+  .thumb_set CAN1_RX1_IRQHandler,Default_Handler
 
-  .weak COMP_IRQHandler
-  .thumb_set COMP_IRQHandler,Default_Handler
+  .weak CAN1_SCE_IRQHandler
+  .thumb_set CAN1_SCE_IRQHandler,Default_Handler
 
   .weak EXTI9_5_IRQHandler
   .thumb_set EXTI9_5_IRQHandler,Default_Handler
 
-  .weak LCD_IRQHandler
-  .thumb_set LCD_IRQHandler,Default_Handler  
+  .weak TIM1_BRK_IRQHandler
+  .thumb_set TIM1_BRK_IRQHandler,Default_Handler
 
-  .weak TIM9_IRQHandler
-  .thumb_set TIM9_IRQHandler,Default_Handler
+  .weak TIM1_UP_IRQHandler
+  .thumb_set TIM1_UP_IRQHandler,Default_Handler
 
-  .weak TIM10_IRQHandler
-  .thumb_set TIM10_IRQHandler,Default_Handler
+  .weak TIM1_TRG_COM_IRQHandler
+  .thumb_set TIM1_TRG_COM_IRQHandler,Default_Handler
 
-  .weak TIM11_IRQHandler
-  .thumb_set TIM11_IRQHandler,Default_Handler
+  .weak TIM1_CC_IRQHandler
+  .thumb_set TIM1_CC_IRQHandler,Default_Handler
 
   .weak TIM2_IRQHandler
   .thumb_set TIM2_IRQHandler,Default_Handler
@@ -382,44 +355,8 @@ g_pfnVectors:
   .weak RTC_Alarm_IRQHandler
   .thumb_set RTC_Alarm_IRQHandler,Default_Handler
 
-  .weak USB_FS_WKUP_IRQHandler
-  .thumb_set USB_FS_WKUP_IRQHandler,Default_Handler
-
-  .weak TIM6_IRQHandler
-  .thumb_set TIM6_IRQHandler,Default_Handler
-
-  .weak TIM7_IRQHandler
-  .thumb_set TIM7_IRQHandler,Default_Handler
-
-  .weak TIM5_IRQHandler
-  .thumb_set TIM5_IRQHandler,Default_Handler
-  
-  .weak SPI3_IRQHandler
-  .thumb_set SPI3_IRQHandler,Default_Handler
-
-  .weak UART4_IRQHandler
-  .thumb_set UART4_IRQHandler,Default_Handler
-
-  .weak UART5_IRQHandler
-  .thumb_set UART5_IRQHandler,Default_Handler
-  
-  .weak DMA2_Channel1_IRQHandler
-  .thumb_set DMA2_Channel1_IRQHandler,Default_Handler
-
-  .weak DMA2_Channel2_IRQHandler
-  .thumb_set DMA2_Channel2_IRQHandler,Default_Handler
-
-  .weak DMA2_Channel3_IRQHandler
-  .thumb_set DMA2_Channel3_IRQHandler,Default_Handler
-
-  .weak DMA2_Channel4_IRQHandler
-  .thumb_set DMA2_Channel4_IRQHandler,Default_Handler
-
-  .weak DMA2_Channel5_IRQHandler
-  .thumb_set DMA2_Channel5_IRQHandler,Default_Handler
-
-  .weak COMP_ACQ_IRQHandler
-   .thumb_set COMP_ACQ_IRQHandler,Default_Handler
+  .weak USBWakeUp_IRQHandler
+  .thumb_set USBWakeUp_IRQHandler,Default_Handler
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 

@@ -7,6 +7,7 @@
  */
 
 #include "target.h"
+#include "main.h"
 
 void targetSysCtrlInit( void )
 {

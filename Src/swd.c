@@ -6,8 +6,9 @@
  * you can obtain one at https://opensource.org/licenses/MIT
  */
 
-#include "stm32l1xx_ll_gpio.h"
+#include "stm32f1xx_ll_gpio.h"
 #include "swd.h"
+#include "main.h"
 
 #define MWAIT __asm__ __volatile__( \
 		 ".syntax unified 		\n" \

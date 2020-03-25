@@ -9,7 +9,7 @@
 #ifndef INC_SWD_H
 #define INC_SWD_H
 #include <stdint.h>
-#include "stm32l1xx_hal.h"
+#include "stm32f1xx_hal.h"
 
 
 /* Internal SWD status. There exist combined SWD status values (e.g. 0x60), since subsequent command replys are OR'ed. Thus there exist cases where the previous command executed correctly (returned 0x20) and the following command failed (returned 0x40), resulting in 0x60. */

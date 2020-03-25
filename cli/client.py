@@ -237,7 +237,7 @@ class UART:
 class REPL:
 
     def __init__(self, start=0x00, length=0x10000, mode='bin',
-                 byteorder='little', devnode='/dev/ttyUSB0'):
+                 byteorder='little', devnode='/dev/tty.usbserial-AO007ZMZ'):
         self.history = InMemoryHistory()
         self.promt = '> '
         self.config = {
