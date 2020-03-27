@@ -4,4 +4,5 @@ The original research: https://www.aisec.fraunhofer.de/en/FirmwareProtection.htm
 
 this repositry is a fork of @sergachev. It contains a port of the original firmware extractor code to STM32F103x (bluepill).
 
-Not tested yet on bluepill reading STM32F07 target.
+Status : build ok but extractor not working.
+To be tested with a bluepill reading STM32F07 target.
