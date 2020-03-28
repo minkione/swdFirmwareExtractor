@@ -198,7 +198,7 @@ class UART:
         print(format(self.devnode))
         subprocess.call( [
             'stty',
-            '-f={}'.format(self.devnode),
+            '--fiile={}'.format(self.devnode),
             '115200',
             'raw',
             '-echok',
@@ -253,11 +253,8 @@ class REPL:
         if cmd == 'set':
             self.set_config(args[0], args[1])
         elif cmd == 'run':
-            print("1")
             self.apply_config()
-            print("2")
             self.uart.send_cmd('S')
-            print("3")
             fd = self.uart.open('r')
             print()
             read_ascii(fd, self.config['outfile'])
